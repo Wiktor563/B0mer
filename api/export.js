@@ -1,18 +1,37 @@
+import fetch from "node-fetch";
+
 export default async function handler(req, res) {
   try {
-    const symbol = "OANDA:XAUUSD";
-    const bars = 500;
+    const symbol = "XAUUSD=X";   // Yahoo Finance symbol for Gold
+    const interval = "1m";       // 1-minute candles
+    const range = "7d";          // last 7 days of data
 
-    const url = `https://api.tradingview.com/history?symbol=${symbol}&resolution=1&bars=${bars}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
     const response = await fetch(url);
-    const data = await response.json();
+    const json = await response.json();
+
+    const result = json.chart.result[0];
+
+    const timestamps = result.timestamp;
+    const prices = result.indicators.quote[0];
+
+    const bars = timestamps.map((t, i) => ({
+      time: t,
+      open: prices.open[i],
+      high: prices.high[i],
+      low: prices.low[i],
+      close: prices.close[i],
+      volume: prices.volume[i]
+    }));
 
     res.status(200).json({
       status: "ok",
-      symbol,
-      bars: data
+      symbol: "XAUUSD",
+      timeframe: interval,
+      bars: bars
     });
+
   } catch (err) {
     res.status(500).json({
       status: "error",
