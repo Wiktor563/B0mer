@@ -1,31 +1,30 @@
 const TF_MAP = {
-  M1: "1min",
-  M5: "5min",
-  M15: "15min",
-  M30: "30min",
+  M1: "1m",
+  M5: "5m",
+  M15: "15m",
+  M30: "30m",
   H1: "1h"
 };
 
 async function fetchTF(tf) {
   const interval = TF_MAP[tf];
-
-  const url = `https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=${interval}&outputsize=500&format=JSON`;
+  const url = `https://api.binance.com/api/v3/klines?symbol=XAUUSDT&interval=${interval}&limit=500`;
 
   const response = await fetch(url);
-  const raw = await response.json();
+  const data = await response.json();
 
-  if (!raw.values) {
-    return { error: raw.message || "No data" };
+  if (!Array.isArray(data)) {
+    return { error: data.msg || "Error fetching data" };
   }
 
-  const candles = raw.values.map(c => ({
-    time: c.datetime,
-    open: parseFloat(c.open),
-    high: parseFloat(c.high),
-    low: parseFloat(c.low),
-    close: parseFloat(c.close),
-    volume: parseFloat(c.volume || 0)
-  })).reverse();
+  const candles = data.map(c => ({
+    time: c[0],
+    open: parseFloat(c[1]),
+    high: parseFloat(c[2]),
+    low: parseFloat(c[3]),
+    close: parseFloat(c[4]),
+    volume: parseFloat(c[5])
+  }));
 
   return { candles };
 }
@@ -41,6 +40,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       status: "ok",
       symbol: "XAUUSD",
+      source: "binance",
       data: result
     });
 
