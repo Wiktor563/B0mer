@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   try {
-    const symbol = "XAU/USD"; // nasz symbol
+    const symbol = "XAUUSD"; // symbol bez slash!
     const intervals = ["1min", "5min", "15min", "30min", "1h"];
     const names = ["M1", "M5", "M15", "M30", "H1"];
 
@@ -14,9 +14,7 @@ export default async function handler(req, res) {
       const interval = intervals[i];
       const name = names[i];
 
-      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(
-        symbol
-      )}&interval=${interval}&apikey=${apiKey}&outputsize=500`;
+      const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${apiKey}&outputsize=200`;
 
       const response = await fetch(url);
       const data = await response.json();
@@ -31,4 +29,9 @@ export default async function handler(req, res) {
       data: result,
     });
   } catch (err) {
-    res.status(500).
+    res.status(500).json({
+      status: "error",
+      message: err.message,
+    });
+  }
+}
