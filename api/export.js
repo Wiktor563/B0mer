@@ -1,48 +1,31 @@
-// Maps resolutions to Yahoo Finance parameters
 const TF_MAP = {
-  M1: { interval: "1m", range: "1d" },
-  M5: { interval: "5m", range: "5d" },
-  M15: { interval: "15m", range: "1mo" },
-  H1: { interval: "1h", range: "1mo" }
+  M1: "1min",
+  M5: "5min",
+  M15: "15min",
+  M30: "30min",
+  H1: "1h"
 };
 
-// Stable Yahoo Finance symbol for GOLD
-const SYMBOL = "GC=F";
-
-// Fetch data from Yahoo Finance for a given TF
 async function fetchTF(tf) {
-  const { interval, range } = TF_MAP[tf];
+  const interval = TF_MAP[tf];
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
-    SYMBOL
-  )}?interval=${interval}&range=${range}`;
+  const url = `https://api.twelvedata.com/time_series?symbol=XAU/USD&interval=${interval}&outputsize=500&format=JSON`;
 
   const response = await fetch(url);
   const raw = await response.json();
 
-  // If Yahoo returns no data (null result)
-  if (!raw.chart || !raw.chart.result || raw.chart.result.length === 0) {
-    return { error: "No data returned" };
+  if (!raw.values) {
+    return { error: raw.message || "No data" };
   }
 
-  const result = raw.chart.result[0];
-
-  // Normalize candles into unified structure
-  const timestamps = result.timestamp || [];
-  const o = result.indicators.quote[0].open || [];
-  const h = result.indicators.quote[0].high || [];
-  const l = result.indicators.quote[0].low || [];
-  const c = result.indicators.quote[0].close || [];
-  const v = result.indicators.quote[0].volume || [];
-
-  const candles = timestamps.map((t, i) => ({
-    time: t,
-    open: o[i],
-    high: h[i],
-    low: l[i],
-    close: c[i],
-    volume: v[i]
-  }));
+  const candles = raw.values.map(c => ({
+    time: c.datetime,
+    open: parseFloat(c.open),
+    high: parseFloat(c.high),
+    low: parseFloat(c.low),
+    close: parseFloat(c.close),
+    volume: parseFloat(c.volume || 0)
+  })).reverse();
 
   return { candles };
 }
@@ -57,7 +40,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       status: "ok",
-      symbol: SYMBOL,
+      symbol: "XAUUSD",
       data: result
     });
 
