@@ -7,11 +7,11 @@ export default async function handler(req, res) {
 
     // ile świec potrzebujemy na każdy TF
     const intervals = [
-      { name: "M1",  interval: "1min",  limit: 80  },
-      { name: "M5",  interval: "5min",  limit: 30  },
-      { name: "M15", interval: "15min", limit: 20  },
-      { name: "M30", interval: "30min", limit: 10  },
-      { name: "H1",  interval: "1h",    limit: 5   },
+      { name: "M1",  interval: "1min",  limit: 150  },
+      { name: "M5",  interval: "5min",  limit: 80  },
+      { name: "M15", interval: "15min", limit: 50  },
+      { name: "M30", interval: "30min", limit: 30  },
+      { name: "H1",  interval: "1h",    limit: 20   },
     ];
 
     let result = {
