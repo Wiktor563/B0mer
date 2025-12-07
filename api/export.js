@@ -1,11 +1,9 @@
-import fetch from "node-fetch";
-
 export default async function handler(req, res) {
   try {
     const symbol = "OANDA:XAUUSD";
     const bars = 500;
 
-    const url = `https://api.tradingview.com/history?symbol=${symbol}&resolution=1&count=${bars}`;
+    const url = `https://api.tradingview.com/history?symbol=${symbol}&resolution=1&bars=${bars}`;
 
     const response = await fetch(url);
     const data = await response.json();
@@ -15,7 +13,6 @@ export default async function handler(req, res) {
       symbol,
       bars: data
     });
-
   } catch (err) {
     res.status(500).json({
       status: "error",
