@@ -1,9 +1,16 @@
 {
-  "version": 2,
+  "version": 3,
+  "framework": null,
   "builds": [
-    { "src": "api/export.js", "use": "@vercel/node" }
+    {
+      "src": "api/export.js",
+      "use": "vercel-node@2.0.0"
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/export.js" }
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/export.js"
+    }
   ]
 }
