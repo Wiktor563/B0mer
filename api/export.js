@@ -2,11 +2,14 @@ import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   try {
-    const symbol = "XAUUSD"; // symbol bez slash!
+    // Musimy użyć zakodowanego symbolu XAU/USD
+    const symbol = "XAU/USD";  
+    const encodedSymbol = encodeURIComponent(symbol);
+
     const intervals = ["1min", "5min", "15min", "30min", "1h"];
     const names = ["M1", "M5", "M15", "M30", "H1"];
 
-    const apiKey = "dc89542d1cb0415d86c9d4ce03e07ad0"; // Twój klucz
+    const apiKey = "dc89542d1cb0415d86c9d4ce03e07ad0";
 
     let result = {};
 
@@ -14,7 +17,7 @@ export default async function handler(req, res) {
       const interval = intervals[i];
       const name = names[i];
 
-      const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${apiKey}&outputsize=200`;
+      const url = `https://api.twelvedata.com/time_series?symbol=${encodedSymbol}&interval=${interval}&apikey=${apiKey}&outputsize=200`;
 
       const response = await fetch(url);
       const data = await response.json();
