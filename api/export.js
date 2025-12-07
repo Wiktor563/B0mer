@@ -2,58 +2,46 @@ import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   try {
-    const symbol = "XAU/USD";                   // instrument
+    const symbol = "XAU/USD"; // instrument
+    const intervals = ["1min", "5min", "15min", "30min", "1h"];
+    const names = ["M1", "M5", "M15", "M30", "H1"];
+
     const apiKey = "dc89542d1cb0415d86c9d4ce03e07ad0"; // Twój klucz API
 
-    const intervals = [
-      { name: "M1",  interval: "1min"  },
-      { name: "M5",  interval: "5min"  },
-      { name: "M15", interval: "15min" },
-      { name: "M30", interval: "30min" },
-      { name: "H1",  interval: "1h"    },
-    ];
+    let result = {
+      status: "ok",
+      provider: "twelvedata",
+      symbol: symbol,
+      data: {}
+    };
 
-    let result = {};
+    for (let i = 0; i < intervals.length; i++) {
+      const interval = intervals[i];
+      const name = names[i];
 
-    for (const tf of intervals) {
-      const url =
-        `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}` +
-        `&interval=${tf.interval}&apikey=${apiKey}&outputsize=500`;
+      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(
+        symbol
+      )}&interval=${interval}&apikey=${apiKey}&outputsize=300`;
 
       const response = await fetch(url);
       const json = await response.json();
 
-      // jeśli jest error API
-      if (!json || !json.values) {
-        result[tf.name] = { error: json };
-        continue;
-      }
-
-      // KONWERSJA DO FORMY KOMPAKTOWEJ
-      // [timestamp, open, high, low, close]
-      const compact = json.values.map(v => ([
-        v.datetime,
-        parseFloat(v.open),
-        parseFloat(v.high),
-        parseFloat(v.low),
-        parseFloat(v.close)
-      ]));
-
-      result[tf.name] = compact;
+      // zapisujemy pod M1, M5, M15, M30, H1
+      result.data[name] = json;
     }
 
-    // GOTOWA odpowiedź
-    res.status(200).json({
-      status: "ok",
-      provider: "twelvedata",
-      symbol,
-      data: result,
-    });
+    const file = JSON.stringify(result, null, 2);
+
+    // nagłówki pobierania pliku
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", "attachment; filename=candles.json");
+
+    res.status(200).send(file);
 
   } catch (err) {
     res.status(500).json({
       status: "error",
-      message: err.message,
+      message: err.message
     });
   }
 }
