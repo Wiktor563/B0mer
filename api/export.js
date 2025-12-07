@@ -1,32 +1,49 @@
+const API_KEY = "dc89542d1cb0415d86c9d4ce03e07ad0";
+const SYMBOL = "XAUUSD";
+const BASE_URL = "https://api.twelvedata.com/time_series";
+
 const TF_MAP = {
-  M1: "1m",
-  M5: "5m",
-  M15: "15m",
-  M30: "30m",
+  M1: "1min",
+  M5: "5min",
+  M15: "15min",
+  M30: "30min",
   H1: "1h"
 };
 
 async function fetchTF(tf) {
   const interval = TF_MAP[tf];
-  const url = `https://api.binance.com/api/v3/klines?symbol=XAUUSDT&interval=${interval}&limit=500`;
+  const url =
+    `${BASE_URL}?symbol=${SYMBOL}` +
+    `&interval=${interval}` +
+    `&apikey=${API_KEY}` +
+    `&outputsize=500` +
+    `&format=JSON`;
 
-  const response = await fetch(url);
-  const data = await response.json();
+  try {
+    const response = await fetch(url);
+    const json = await response.json();
 
-  if (!Array.isArray(data)) {
-    return { error: data.msg || "Error fetching data" };
+    if (json.status === "error" || json.code) {
+      return { error: json.message || "API error", raw: json };
+    }
+
+    if (!json.values || !Array.isArray(json.values)) {
+      return { error: "No candles", raw: json };
+    }
+
+    const candles = json.values.map(c => ({
+      time: c.datetime,
+      open: parseFloat(c.open),
+      high: parseFloat(c.high),
+      low: parseFloat(c.low),
+      close: parseFloat(c.close),
+      volume: parseFloat(c.volume ?? 0)
+    }));
+
+    return { candles };
+  } catch (err) {
+    return { error: err.message };
   }
-
-  const candles = data.map(c => ({
-    time: c[0],
-    open: parseFloat(c[1]),
-    high: parseFloat(c[2]),
-    low: parseFloat(c[3]),
-    close: parseFloat(c[4]),
-    volume: parseFloat(c[5])
-  }));
-
-  return { candles };
 }
 
 export default async function handler(req, res) {
@@ -39,11 +56,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       status: "ok",
-      symbol: "XAUUSD",
-      source: "binance",
+      symbol: SYMBOL,
+      provider: "twelvedata",
       data: result
     });
-
   } catch (err) {
     return res.status(500).json({
       status: "error",
