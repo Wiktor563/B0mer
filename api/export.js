@@ -1,21 +1,36 @@
-import fetch from "node-fetch";
-
 export default async function handler(req, res) {
   try {
-    const { symbol = "OANDA:XAUUSD", bars = 2000 } = req.query;
+    if (req.method !== "POST") {
+      return res.status(400).json({
+        status: "error",
+        message: "Use POST method and send MT5 candle data"
+      });
+    }
 
-    const url = `https://api.tradingview.com/history?symbol=${symbol}&resolution=1&count=${bars}`;
+    const body = req.body;
 
-    const response = await fetch(url);
-    const data = await response.json();
+    if (!body || !body.symbol || !body.timeframe || !body.bars) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing fields: symbol, timeframe, bars[]"
+      });
+    }
 
-    res.status(200).json({
+    const payload = {
+      received_at: new Date().toISOString(),
+      symbol: body.symbol,
+      timeframe: body.timeframe,
+      bars: body.bars
+    };
+
+    // Zwracamy dane w JSON – MT5 będzie je wysyłało co 4h / 8h / 14h
+    return res.status(200).json({
       status: "ok",
-      symbol,
-      bars: data
+      data: payload
     });
+
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: err.message
     });
