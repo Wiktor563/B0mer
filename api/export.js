@@ -1,63 +1,63 @@
-import fetch from "node-fetch";
-
 export default async function handler(req, res) {
   try {
-    const symbol = "XAU/USD";
-    const apiKey = "dc89542d1cb0415d86c9d4ce03e07ad0";
+    const symbol = "XAUUSD=X";  
 
-    // ile świec potrzebujemy na każdy TF
+    // tutaj ustawiamy dokładnie tyle świec, ile BOMER MACHINE v3.1 potrzebuje:
     const intervals = [
-      { name: "M1",  interval: "1min",  limit: 150  },
-      { name: "M5",  interval: "5min",  limit: 80  },
-      { name: "M15", interval: "15min", limit: 50  },
-      { name: "M30", interval: "30min", limit: 30  },
-      { name: "H1",  interval: "1h",    limit: 20   },
+      { name: "M1",  interval: "1m",  limit: 150 },
+      { name: "M5",  interval: "5m",  limit: 80  },
+      { name: "M15", interval: "15m", limit: 50  },
+      { name: "M30", interval: "30m", limit: 30  },
+      { name: "H1",  interval: "60m", limit: 20  }
     ];
 
-    let result = {
-      status: "ok",
-      provider: "twelvedata",
-      symbol,
-      data: {}
-    };
-
-    for (const tf of intervals) {
+    async function fetchYahoo(tf) {
       const url =
-        `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}` +
-        `&interval=${tf.interval}&apikey=${apiKey}&outputsize=${tf.limit}`;
+        `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}` +
+        `?interval=${tf.interval}&range=7d`;
 
       const response = await fetch(url);
-      const json = await response.json();
+      const raw = await response.json();
 
-      if (!json || !json.values) {
-        result.data[tf.name] = { error: json };
-        continue;
-      }
+      const result = raw.chart?.result?.[0];
+      if (!result) return { error: "No data" };
 
-      // kompakt: [time, open, high, low, close]
-      const compact = json.values.map(v => ([
-        v.datetime,
-        Number(v.open),
-        Number(v.high),
-        Number(v.low),
-        Number(v.close)
-      ]));
+      const timestamps = result.timestamp || [];
+      const ohlc = result.indicators?.quote?.[0] || {};
 
-      // dajemy dokładną liczbę świec
-      result.data[tf.name] = compact.slice(0, tf.limit);
+      const candles = timestamps.map((t, i) => ([
+        t * 1000,
+        ohlc.open?.[i] ?? null,
+        ohlc.high?.[i] ?? null,
+        ohlc.low?.[i] ?? null,
+        ohlc.close?.[i] ?? null
+      ])).filter(c => c[1] !== null);
+
+      return candles.slice(-tf.limit); // ostatnie świeczki
     }
 
-    const file = JSON.stringify(result, null, 2);
+    let data = {};
+
+    for (const tf of intervals) {
+      data[tf.name] = await fetchYahoo(tf);
+    }
+
+    const file = JSON.stringify(
+      {
+        status: "ok",
+        provider: "yahoo",
+        symbol,
+        data
+      },
+      null,
+      2
+    );
 
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Content-Disposition", "attachment; filename=candles.json");
-
     res.status(200).send(file);
 
   } catch (err) {
-    res.status(500).json({
-      status: "error",
-      message: err.message
-    });
+    res.status(500).json({ error: err.message });
   }
 }
